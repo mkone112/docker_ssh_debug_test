@@ -1,17 +1,20 @@
 FROM python:3.10
+WORKDIR /app/
+
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
 COPY app.py .
-COPY requirements.txt .
-COPY cmd.sh /
-RUN apt-get update && apt-get install openssh-server sudo -y && useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test
+COPY cmd.sh .
 
-RUN  echo 'test:test' | chpasswd
 
-RUN service ssh start
+# Start and enable SSH
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dialog \
+    && apt-get install -y --no-install-recommends openssh-server \
+    && echo "root:Docker!" | chpasswd \
+    && chmod u+x /app/cmd.sh
+COPY sshd_config /etc/ssh/
 
-EXPOSE 22
+EXPOSE 8000 2222
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-RUN pip install --no-cache-dir -r requirements.txt
-
-CMD ["/cmd.sh"]
-
+ENTRYPOINT [ "/app/cmd.sh" ]
